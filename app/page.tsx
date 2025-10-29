@@ -1,18 +1,38 @@
 "use client";
-import { useCallback } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const startOnboarding = useCallback(() => {
-    const appId = process.env.NEXT_PUBLIC_META_APP_ID || "";
-    const redirectUri = process.env.NEXT_PUBLIC_META_REDIRECT_URI || "";
-    const state = crypto.randomUUID(); // identifica o cliente no retorno
+  const [loginResponse, setLoginResponse] = useState(null);
 
-    const signupUrl = `https://www.facebook.com/dialog/whatsapp_business_signup?app_id=${appId}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&state=${state}`;
+  const handleFacebookLogin = () => {
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID;
+    if (!configId) {
+      console.error("NEXT_PUBLIC_META_CONFIG_ID is not defined");
+      return;
+    }
 
-    window.open(signupUrl, "_blank", "width=800,height=800");
-  }, []);
+    window.FB.login(
+      (response: any) => {
+        setLoginResponse(response);
+      },
+      {
+        config_id: configId,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: {
+          feature: "whatsapp_embedded_signup",
+          version: 2,
+          session_info_version: 2,
+        },
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (loginResponse) {
+      console.log("Facebook Login Response:", loginResponse);
+    }
+  }, [loginResponse]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center">
@@ -20,7 +40,7 @@ export default function Home() {
         Conectar WhatsApp Business App
       </h1>
       <button
-        onClick={startOnboarding}
+        onClick={handleFacebookLogin}
         className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700"
       >
         Iniciar configuração
