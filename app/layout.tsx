@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Script from "next/script";
+import FacebookSDK from "./components/FacebookSDK";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,20 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Script
-          id="fb-sdk"
-          strategy="lazyOnload"
-          src="https://connect.facebook.net/en_US/sdk.js"
-          onLoad={() => {
-            window.fbAsyncInit = function () {
-              window.FB.init({
-                appId: process.env.NEXT_PUBLIC_META_APP_ID,
-                xfbml: true,
-                version: "v20.0",
-              });
-            };
-          }}
-        />
+        <FacebookSDK />
         {children}
       </body>
     </html>
