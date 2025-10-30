@@ -38,17 +38,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, redirect_uri } = await req.json();
+    const { code } = await req.json();
 
-    if (!code || !redirect_uri) {
-      return NextResponse.json({ error: "Missing code or redirect_uri" }, { status: 400 });
+    if (!code) {
+      return NextResponse.json({ error: "Missing code" }, { status: 400 });
     }
 
-    const clientId = process.env.NEXT_PUBLIC_META_APP_ID; // Assuming this is the client_id
-    const clientSecret = process.env.META_APP_SECRET; // Assuming this is the client_secret
+    const clientId = process.env.NEXT_PUBLIC_META_APP_ID;
+    const clientSecret = process.env.META_APP_SECRET;
+    const redirectUri = process.env.NEXT_PUBLIC_META_REDIRECT_URI; // Get redirect_uri from env
 
-    if (!clientId || !clientSecret) {
-      return NextResponse.json({ error: "Missing client ID or client secret environment variables" }, { status: 500 });
+    if (!clientId || !clientSecret || !redirectUri) {
+      return NextResponse.json({ error: "Missing client ID, client secret, or redirect URI environment variables" }, { status: 500 });
     }
 
     const tokenExchangeUrl = `https://graph.facebook.com/v22.0/oauth/access_token`;
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         client_secret: clientSecret,
         code: code,
         grant_type: "authorization_code",
-        redirect_uri: redirect_uri,
+        redirect_uri: redirectUri, // Use redirectUri from env
       }),
     });
 
