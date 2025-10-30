@@ -13,7 +13,8 @@ export default function FacebookSDK() {
           window.FB.init({
             appId: process.env.NEXT_PUBLIC_META_APP_ID,
             xfbml: true,
-            version: 'v20.0',
+            autoLogAppEvents: true,
+            version: 'v24.0',
           });
         };
       }}
