@@ -9,7 +9,9 @@ export default function Home() {
 
   const handleLogin = () => {
     if (!window.FB) {
-      setMessage("Facebook SDK não carregou ainda. Tente novamente em alguns segundos.");
+      setMessage(
+        "Facebook SDK não carregou ainda. Tente novamente em alguns segundos."
+      );
       return;
     }
 
@@ -18,6 +20,7 @@ export default function Home() {
 
     window.FB.login(
       function (response: any) {
+        console.log(response);
         if (response.authResponse && response.authResponse.code) {
           setMessage("Autenticação bem-sucedida! Processando integração...");
 
@@ -34,7 +37,9 @@ export default function Home() {
               if (data.error) {
                 throw new Error(data.error);
               }
-              setMessage("Integração concluída com sucesso! As contas do WhatsApp foram conectadas.");
+              setMessage(
+                "Integração concluída com sucesso! As contas do WhatsApp foram conectadas."
+              );
               setIsLoading(false);
             })
             .catch((error) => {
@@ -43,7 +48,9 @@ export default function Home() {
               setIsLoading(false);
             });
         } else {
-          setMessage("Falha na autenticação com o Facebook. O usuário cancelou ou houve um erro.");
+          setMessage(
+            "Falha na autenticação com o Facebook. O usuário cancelou ou houve um erro."
+          );
           setIsLoading(false);
           console.log("User cancelled login or did not fully authorize.");
         }
@@ -52,7 +59,11 @@ export default function Home() {
         config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID, // ID de configuração do painel do app
         response_type: "code", // OBRIGATÓRIO para este fluxo
         override_default_response_type: true, // OBRIGATÓRIO para este fluxo
-        scope: "whatsapp_business_management,whatsapp_business_messaging",
+        extras: {
+          setup: {},
+          featureType: "whatsapp_business_app_onboarding",
+          sessionInfoVersion: "3",
+        },
       }
     );
   };
@@ -75,11 +86,11 @@ export default function Home() {
 
         <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-1">
           <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-            <h2 className="mb-3 text-2xl font-semibold">
-              Passo 1: Conectar
-            </h2>
+            <h2 className="mb-3 text-2xl font-semibold">Passo 1: Conectar</h2>
             <p className="m-0 max-w-[30ch] text-sm opacity-50">
-              Clique no botão abaixo para iniciar a conexão segura com o Facebook e autorizar a integração com sua conta do WhatsApp Business.
+              Clique no botão abaixo para iniciar a conexão segura com o
+              Facebook e autorizar a integração com sua conta do WhatsApp
+              Business.
             </p>
             <button
               onClick={handleLogin}
