@@ -45,6 +45,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to retrieve WhatsApp accounts" }, { status: 400 });
     }
 
+    const wabaIds = debugTokenData.data.granular_scopes
+      .filter((scope: any) => scope.scope === "whatsapp_business_management")
+      .flatMap((scope: any) => scope.target_ids || []);
+
+    if (wabaIds.length === 0) {
+      return NextResponse.json({ error: "No WhatsApp Business Account found" }, { status: 400 });
+    }
+
     const wabaId = wabaIds[0]; // Usando o primeiro WABA encontrado
 
     // 3. Inscrever o aplicativo para receber webhooks do WABA
