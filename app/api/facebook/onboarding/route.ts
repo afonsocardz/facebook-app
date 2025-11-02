@@ -45,42 +45,94 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to retrieve WhatsApp accounts" }, { status: 400 });
     }
 
-    const wabaIds = debugTokenData.data.granular_scopes
-      .filter((scope: any) => scope.scope === "whatsapp_business_management")
-      .flatMap((scope: any) => scope.target_ids || []);
+    const wabaId = wabaIds[0]; // Usando o primeiro WABA encontrado
 
-    if (wabaIds.length === 0) {
-      return NextResponse.json({ error: "No WhatsApp Business Account found" }, { status: 400 });
+    // 3. Inscrever o aplicativo para receber webhooks do WABA
+    const subResponse = await fetch(
+      `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/subscribed_apps`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${userAccessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subscribed_fields: ["messages", "message_echoes", "message_template_status", "history", "smb_app_state_sync"],
+        })
+      }
+    );
+    const subData = await subResponse.json();
+    if (!subResponse.ok) {
+      console.error(`Failed to subscribe WABA ${wabaId}:`, subData);
+      throw new Error(`Failed to subscribe WABA ${wabaId}`);
+    }
+    console.log(`Successfully subscribed app to WABA ${wabaId}`);
+
+    // 4. Obter os números de telefone associados ao WABA
+    const phoneNumbersResponse = await fetch(
+      `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/phone_numbers?access_token=${userAccessToken}`
+    );
+    const phoneNumbersData = await phoneNumbersResponse.json();
+
+    if (!phoneNumbersData.data || phoneNumbersData.data.length === 0) {
+      return NextResponse.json({ error: "No phone numbers found for this WABA" }, { status: 400 });
     }
 
-    console.log(`Found ${wabaIds.length} WABA(s):`, wabaIds);
+    console.log(`Found ${phoneNumbersData.data.length} phone number(s).`);
 
-    // 3. Para cada WABA, inscrever o aplicativo para receber webhooks
-    const subscriptionPromises = wabaIds.map(async (wabaId: string) => {
-      const subResponse = await fetch(
-        `https://graph.facebook.com/${META_API_VERSION}/${wabaId}/subscribed_apps`,
+    // 5. Para cada número, iniciar a sincronização de dados
+    const syncPromises = phoneNumbersData.data.map(async (phone: any) => {
+      const businessPhoneNumberId = phone.id;
+      console.log(`Initiating sync for phone number ID: ${businessPhoneNumberId}`);
+
+      // Iniciar sincronização de contatos
+      const syncContactsResponse = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${businessPhoneNumberId}/smb_app_data`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${userAccessToken}`,
+            "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            sync_type: "smb_app_state_sync",
+          }),
         }
       );
-      const subData = await subResponse.json();
-      if (!subResponse.ok) {
-        console.error(`Failed to subscribe WABA ${wabaId}:`, subData);
-        throw new Error(`Failed to subscribe WABA ${wabaId}`);
+      const syncContactsData = await syncContactsResponse.json();
+      if (!syncContactsResponse.ok) {
+        console.error(`Failed to initiate contact sync for ${businessPhoneNumberId}:`, syncContactsData);
       }
-      console.log(`Successfully subscribed app to WABA ${wabaId}`);
-      return { wabaId, success: true };
+      console.log(`Contact sync initiated for ${businessPhoneNumberId}:`, syncContactsData);
+
+      // Iniciar sincronização de histórico
+      const syncHistoryResponse = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${businessPhoneNumberId}/smb_app_data`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            sync_type: "history",
+          }),
+        }
+      );
+      const syncHistoryData = await syncHistoryResponse.json();
+      if (!syncHistoryResponse.ok) {
+        console.error(`Failed to initiate history sync for ${businessPhoneNumberId}:`, syncHistoryData);
+      }
+      console.log(`History sync initiated for ${businessPhoneNumberId}:`, syncHistoryData);
+
+      return { businessPhoneNumberId, contacts: syncContactsData, history: syncHistoryData };
     });
 
-    const subscriptionResults = await Promise.all(subscriptionPromises);
+    const syncResults = await Promise.all(syncPromises);
 
-    // Aqui você deve salvar o userAccessToken e os wabaIds no seu banco de dados,
-    // associando-os ao seu cliente/usuário.
-
-    return NextResponse.json({ success: true, subscribed_wabas: subscriptionResults });
+    return NextResponse.json({ success: true, wabaId, syncResults });
 
   } catch (error) {
     console.error("Server error during onboarding:", error);
