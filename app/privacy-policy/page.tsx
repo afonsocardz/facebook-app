@@ -4,7 +4,7 @@ export default function PrivacyPolicy() {
       <h1>Política de Privacidade</h1>
       <p>Última atualização: 29 de outubro de 2025</p>
 
-      <p>A sua privacidade é importante para nós. Esta Política de Privacidade descreve como [Nome da Sua Empresa/App] coleta, usa e divulga suas informações em conexão com o uso do nosso aplicativo e serviços.</p>
+      <p>A sua privacidade é importante para nós. Esta Política de Privacidade descreve como NetCreator coleta, usa e divulga suas informações em conexão com o uso do nosso aplicativo e serviços.</p>
 
       <h2>1. Informações que Coletamos</h2>
       <p>Podemos coletar as seguintes categorias de informações:</p>
